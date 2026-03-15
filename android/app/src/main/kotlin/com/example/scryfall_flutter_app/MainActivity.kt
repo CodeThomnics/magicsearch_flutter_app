@@ -1,4 +1,4 @@
-package com.example.scryfall_flutter_app
+package com.example.magicsearch_flutter_app
 
 import io.flutter.embedding.android.FlutterActivity
 

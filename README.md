@@ -1,4 +1,4 @@
-# scryfall_flutter_app
+# magicsearch_flutter_app
 
 A new Flutter project.
 
