@@ -9,7 +9,7 @@ class RandomCardScreen extends ConsumerWidget {
   const RandomCardScreen({super.key});
 
   void _searchByArtist(BuildContext context, WidgetRef ref, String artist) {
-    ref.invalidate( randomCardProvider);
+    ref.invalidate(randomCardProvider);
     ref.read(cardSearchQueryProvider.notifier).setQuery(artist);
     context.pushReplacement('/search');
   }

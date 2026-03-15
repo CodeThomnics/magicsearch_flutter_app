@@ -90,6 +90,7 @@ class CardInfoWidget extends StatelessWidget {
         isTop: true,
       ),
       _buildTypeLine(card.typeLine, theme, borderColor),
+      _buildSetAndRarity(theme, borderColor),
       _buildOracleText(card.oracleText ?? '', theme),
       if (card.flavorText != null && card.flavorText!.isNotEmpty)
         _buildFlavorText(card.flavorText!, theme),
@@ -112,6 +113,7 @@ class CardInfoWidget extends StatelessWidget {
         isTop: true,
       ),
       _buildTypeLine(frontFace.typeLine ?? card.typeLine, theme, borderColor),
+      _buildSetAndRarity(theme, borderColor),
       _buildOracleText(frontFace.oracleText ?? '', theme),
       if (frontFace.power != null && frontFace.toughness != null)
         _buildPowerToughness(
@@ -162,6 +164,7 @@ class CardInfoWidget extends StatelessWidget {
         isTop: false,
       ),
       _buildTypeLine(backFace.typeLine ?? '', theme, borderColor),
+      _buildSetAndRarity(theme, borderColor),
       _buildOracleText(backFace.oracleText ?? '', theme),
       if (backFace.power != null && backFace.toughness != null)
         _buildPowerToughness(
@@ -367,6 +370,74 @@ class CardInfoWidget extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildSetAndRarity(ThemeData theme, Color borderColor) {
+    final setCode = card.cardSet;
+    final setName = card.setName;
+    final rarity = card.rarity;
+
+    Color rarityColor;
+    switch (rarity) {
+      case 'common':
+        rarityColor = Colors.grey.shade600;
+        break;
+      case 'uncommon':
+        rarityColor = Colors.green.shade700;
+        break;
+      case 'rare':
+        rarityColor = Colors.deepPurple.shade700;
+        break;
+      case 'mythic':
+        rarityColor = Colors.orange.shade700;
+        break;
+      default:
+        rarityColor = theme.colorScheme.onSurfaceVariant;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        border: Border(
+          top: BorderSide(color: borderColor),
+          bottom: BorderSide(color: borderColor),
+        ),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '$setName (${setCode.toUpperCase()})',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+          Container(
+            margin: const EdgeInsets.only(left: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: rarityColor.withAlpha(30),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: rarityColor),
+            ),
+            child: Text(
+              rarity.capitalize(),
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: rarityColor,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
