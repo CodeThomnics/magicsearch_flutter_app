@@ -1,12 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:magicsearch_flutter_app/providers/card_provider.dart';
+import 'package:magicsearch_flutter_app/providers/card_search_provider.dart';
 import 'package:magicsearch_flutter_app/widgets/card_display_widget.dart';
 
 class CardDetailScreen extends ConsumerWidget {
   final String cardId;
 
   const CardDetailScreen({super.key, required this.cardId});
+
+  void _searchByArtist(BuildContext context, WidgetRef ref, String artist) {
+    ref.read(cardSearchQueryProvider.notifier).setQuery(artist);
+    context.pushReplacement('/search');
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -19,7 +26,11 @@ class CardDetailScreen extends ConsumerWidget {
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(16),
             child: Center(
-              child: CardDisplayWidget(card: card, maxImageWidth: 360),
+              child: CardDisplayWidget(
+                card: card,
+                maxImageWidth: 360,
+                onArtistTap: () => _searchByArtist(context, ref, card.artist),
+              ),
             ),
           ),
         ),

@@ -45,12 +45,24 @@ class CardSearchScreen extends HookConsumerWidget {
     final searchDebounce = useRef<Timer?>(null);
     useListenable(controller);
 
+    useEffect(() {
+      if (controller.text == query) {
+        return null;
+      }
+
+      controller.value = TextEditingValue(
+        text: query,
+        selection: TextSelection.collapsed(offset: query.length),
+      );
+      return null;
+    }, [controller, query]);
+
     final search = useCallback(() {
       final query = controller.text.trim();
       if (query.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Please enter a card name'),
+            content: Text('Please enter a card name or artist'),
             duration: Duration(seconds: 2),
           ),
         );
@@ -81,7 +93,7 @@ class CardSearchScreen extends HookConsumerWidget {
             child: SearchBar(
               controller: controller,
               focusNode: focusNode,
-              hintText: 'Search by card name…',
+              hintText: 'Search by card name or artist…',
               leading: const Icon(Icons.search),
               trailing: [
                 if (controller.text.isNotEmpty)
@@ -130,7 +142,7 @@ class CardSearchScreen extends HookConsumerWidget {
                         ),
                         const SizedBox(height: 16),
                         Text(
-                          'Search for a card by name',
+                          'Search for a card by name or artist',
                           style: theme.textTheme.bodyLarge?.copyWith(
                             color: theme.colorScheme.onSurfaceVariant,
                           ),
@@ -223,15 +235,17 @@ class _CardGrid extends StatelessWidget {
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(10),
                     child: Image.network(
-                      card.imageUris?.normal
-                          ?? card.cardFaces?[0].imageUris?.normal
-                          ?? '',
+                      card.imageUris?.normal ??
+                          card.cardFaces?[0].imageUris?.normal ??
+                          '',
                       fit: BoxFit.cover,
                       loadingBuilder: (context, child, progress) {
                         if (progress == null) return child;
                         return Container(
                           color: theme.colorScheme.surfaceContainerHighest,
-                          child: const Center(child: CircularProgressIndicator()),
+                          child: const Center(
+                            child: CircularProgressIndicator(),
+                          ),
                         );
                       },
                       errorBuilder: (_, _, _) => Container(
@@ -256,23 +270,29 @@ class _AdvancedSearchSheet extends HookWidget {
   const _AdvancedSearchSheet({required this.onSearch});
 
   static const List<(String, String, String, Color, Color)> _colorOptions = [
-    ('w', 'White',    'W', Color(0xFFF5E6A3), Color(0xDD000000)),
-    ('u', 'Blue',     'U', Color(0xFF0E68AB), Color(0xFFFFFFFF)),
-    ('b', 'Black',    'B', Color(0xFF21160F), Color(0xFFFFFFFF)),
-    ('r', 'Red',      'R', Color(0xFFD3202A), Color(0xFFFFFFFF)),
-    ('g', 'Green',    'G', Color(0xFF00733E), Color(0xFFFFFFFF)),
-    ('c', 'Colorless','C', Color(0xFF9C8D88), Color(0xFFFFFFFF)),
+    ('w', 'White', 'W', Color(0xFFF5E6A3), Color(0xDD000000)),
+    ('u', 'Blue', 'U', Color(0xFF0E68AB), Color(0xFFFFFFFF)),
+    ('b', 'Black', 'B', Color(0xFF21160F), Color(0xFFFFFFFF)),
+    ('r', 'Red', 'R', Color(0xFFD3202A), Color(0xFFFFFFFF)),
+    ('g', 'Green', 'G', Color(0xFF00733E), Color(0xFFFFFFFF)),
+    ('c', 'Colorless', 'C', Color(0xFF9C8D88), Color(0xFFFFFFFF)),
   ];
 
   static const List<(String, String, Color)> _rarityOptions = [
-    ('common',   'Common',   Color(0xFF909090)),
+    ('common', 'Common', Color(0xFF909090)),
     ('uncommon', 'Uncommon', Color(0xFF5A7F9A)),
-    ('rare',     'Rare',     Color(0xFFC6A845)),
-    ('mythic',   'Mythic',   Color(0xFFBF4427)),
+    ('rare', 'Rare', Color(0xFFC6A845)),
+    ('mythic', 'Mythic', Color(0xFFBF4427)),
   ];
 
   static const _formats = [
-    'standard', 'pioneer', 'modern', 'legacy', 'vintage', 'commander', 'pauper',
+    'standard',
+    'pioneer',
+    'modern',
+    'legacy',
+    'vintage',
+    'commander',
+    'pauper',
   ];
 
   static const _cmcOps = ['=', '>=', '<=', '>', '<'];
@@ -281,23 +301,27 @@ class _AdvancedSearchSheet extends HookWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    final nameCtrl   = useTextEditingController();
-    final typeCtrl   = useTextEditingController();
-    final setCtrl    = useTextEditingController();
+    final nameCtrl = useTextEditingController();
+    final artistCtrl = useTextEditingController();
+    final typeCtrl = useTextEditingController();
+    final setCtrl = useTextEditingController();
     final oracleCtrl = useTextEditingController();
-    final cmcCtrl    = useTextEditingController();
+    final cmcCtrl = useTextEditingController();
 
-    final selectedColors    = useState<Set<String>>({});
-    final colorMatch        = useState('including'); // including, exactly, atmost
-    final selectedRarities  = useState<Set<String>>({});
-    final cmcOp             = useState('=');
-    final selectedFormat    = useState<String?>(null);
+    final selectedColors = useState<Set<String>>({});
+    final colorMatch = useState('including'); // including, exactly, atmost
+    final selectedRarities = useState<Set<String>>({});
+    final cmcOp = useState('=');
+    final selectedFormat = useState<String?>(null);
 
     String buildQuery() {
       final parts = <String>[];
 
       final name = nameCtrl.text.trim();
       if (name.isNotEmpty) parts.add(name);
+
+      final artist = artistCtrl.text.trim();
+      if (artist.isNotEmpty) parts.add('artist:"$artist"');
 
       final colors = selectedColors.value;
       if (colors.isNotEmpty) {
@@ -307,9 +331,12 @@ class _AdvancedSearchSheet extends HookWidget {
           parts.add('c:c');
         } else if (colorStr.isNotEmpty) {
           switch (colorMatch.value) {
-            case 'exactly': parts.add('c=$colorStr');
-            case 'atmost':  parts.add('c<=$colorStr');
-            default:        parts.add('c>=$colorStr');
+            case 'exactly':
+              parts.add('c=$colorStr');
+            case 'atmost':
+              parts.add('c<=$colorStr');
+            default:
+              parts.add('c>=$colorStr');
           }
         }
       }
@@ -345,15 +372,15 @@ class _AdvancedSearchSheet extends HookWidget {
     }
 
     Widget sectionLabel(String label) => Padding(
-          padding: const EdgeInsets.only(bottom: 6),
-          child: Text(
-            label,
-            style: theme.textTheme.labelLarge?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: theme.colorScheme.primary,
-            ),
-          ),
-        );
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Text(
+        label,
+        style: theme.textTheme.labelLarge?.copyWith(
+          fontWeight: FontWeight.bold,
+          color: theme.colorScheme.primary,
+        ),
+      ),
+    );
 
     return DraggableScrollableSheet(
       expand: false,
@@ -370,7 +397,9 @@ class _AdvancedSearchSheet extends HookWidget {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                  color: theme.colorScheme.onSurfaceVariant.withValues(
+                    alpha: 0.5,
+                  ),
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -382,8 +411,9 @@ class _AdvancedSearchSheet extends HookWidget {
                 children: [
                   Text(
                     'Advanced Search',
-                    style: theme.textTheme.titleLarge
-                        ?.copyWith(fontWeight: FontWeight.bold),
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   const Spacer(),
                   IconButton(
@@ -412,15 +442,31 @@ class _AdvancedSearchSheet extends HookWidget {
                   ),
                   const SizedBox(height: 20),
 
+                  // ── Artist ────────────────────────────────────────────
+                  sectionLabel('Artist'),
+                  TextField(
+                    controller: artistCtrl,
+                    decoration: const InputDecoration(
+                      hintText: 'e.g. Rebecca Guay',
+                      border: OutlineInputBorder(),
+                      isDense: true,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
                   // ── Colors ────────────────────────────────────────────
                   sectionLabel('Colors'),
                   Wrap(
                     spacing: 6,
                     runSpacing: 4,
                     children: [
-                      for (final (scryCode, label, code, bg, fg) in _colorOptions)
+                      for (final (scryCode, label, code, bg, fg)
+                          in _colorOptions)
                         FilterChip(
-                          label: ManaCostWidget(manaCost: '{${scryCode.toUpperCase()}}', symbolSize: 18),
+                          label: ManaCostWidget(
+                            manaCost: '{${scryCode.toUpperCase()}}',
+                            symbolSize: 18,
+                          ),
                           tooltip: label,
                           selected: selectedColors.value.contains(code),
                           backgroundColor: bg.withValues(alpha: 0.15),
@@ -442,9 +488,12 @@ class _AdvancedSearchSheet extends HookWidget {
                     const SizedBox(height: 8),
                     SegmentedButton<String>(
                       segments: const [
-                        ButtonSegment(value: 'including', label: Text('Includes')),
-                        ButtonSegment(value: 'exactly',   label: Text('Exactly')),
-                        ButtonSegment(value: 'atmost',    label: Text('At Most')),
+                        ButtonSegment(
+                          value: 'including',
+                          label: Text('Includes'),
+                        ),
+                        ButtonSegment(value: 'exactly', label: Text('Exactly')),
+                        ButtonSegment(value: 'atmost', label: Text('At Most')),
                       ],
                       selected: {colorMatch.value},
                       onSelectionChanged: (v) => colorMatch.value = v.first,
@@ -490,8 +539,9 @@ class _AdvancedSearchSheet extends HookWidget {
                           checkmarkColor: Colors.white,
                           side: BorderSide(color: color),
                           onSelected: (v) {
-                            final next =
-                                Set<String>.from(selectedRarities.value);
+                            final next = Set<String>.from(
+                              selectedRarities.value,
+                            );
                             v ? next.add(rarity) : next.remove(rarity);
                             selectedRarities.value = next;
                           },
@@ -551,12 +601,13 @@ class _AdvancedSearchSheet extends HookWidget {
                     ),
                     items: [
                       const DropdownMenuItem<String>(
-                          value: null, child: Text('Any format')),
+                        value: null,
+                        child: Text('Any format'),
+                      ),
                       for (final f in _formats)
                         DropdownMenuItem<String>(
                           value: f,
-                          child: Text(
-                              f[0].toUpperCase() + f.substring(1)),
+                          child: Text(f[0].toUpperCase() + f.substring(1)),
                         ),
                     ],
                     onChanged: (v) => selectedFormat.value = v,

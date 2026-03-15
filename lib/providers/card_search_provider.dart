@@ -15,16 +15,16 @@ class CardSearchQueryNotifier extends Notifier<String> {
 
 /// Holds the current search query. Empty string means no search has been made.
 final cardSearchQueryProvider =
-    NotifierProvider<CardSearchQueryNotifier, String>(CardSearchQueryNotifier.new);
+    NotifierProvider<CardSearchQueryNotifier, String>(
+      CardSearchQueryNotifier.new,
+    );
 
 /// Represents a search result: either a single exact card or a list of matches.
 class CardSearchResult {
   final MagicCard? exactCard;
   final List<MagicCard> cards;
 
-  CardSearchResult.exact(MagicCard card)
-      : exactCard = card,
-        cards = const [];
+  CardSearchResult.exact(MagicCard card) : exactCard = card, cards = const [];
 
   CardSearchResult.multiple(this.cards) : exactCard = null;
 
@@ -37,13 +37,14 @@ class CardSearchResult {
 final cardSearchProvider = FutureProvider<CardSearchResult?>((ref) async {
   final dio = ref.watch(dioProvider);
   final query = ref.watch(cardSearchQueryProvider);
-  if (query.trim().isEmpty) return null;
+  final trimmedQuery = query.trim();
+  if (trimmedQuery.isEmpty) return null;
 
   // 1. Try exact/fuzzy named match.
   try {
     final response = await dio.get(
       '/cards/named',
-      queryParameters: {'fuzzy': query.trim()},
+      queryParameters: {'fuzzy': trimmedQuery},
     );
     try {
       return CardSearchResult.exact(MagicCard.fromJson(response.data));
@@ -60,11 +61,17 @@ final cardSearchProvider = FutureProvider<CardSearchResult?>((ref) async {
   try {
     final response = await dio.get(
       '/cards/search',
-      queryParameters: {'q': query.trim(), 'order': 'name', 'unique': 'cards'},
+      queryParameters: {
+        'q': _buildSearchQuery(trimmedQuery),
+        'order': 'name',
+        'unique': 'cards',
+      },
     );
     try {
       final data = response.data['data'] as List<dynamic>;
-      final cards = data.map((c) => MagicCard.fromJson(c as Map<String, dynamic>)).toList();
+      final cards = data
+          .map((c) => MagicCard.fromJson(c as Map<String, dynamic>))
+          .toList();
       return CardSearchResult.multiple(cards);
     } catch (e, stack) {
       debugPrint('[CardSearch] JSON parse error (search): $e');
@@ -73,8 +80,27 @@ final cardSearchProvider = FutureProvider<CardSearchResult?>((ref) async {
     }
   } on DioException catch (e) {
     if (e.response?.statusCode == 404) {
-      throw Exception('No cards found for "${query.trim()}"');
+      throw Exception('No cards found for "$trimmedQuery"');
     }
     rethrow;
   }
 });
+
+String _buildSearchQuery(String query) {
+  if (_looksLikeStructuredQuery(query)) {
+    return query;
+  }
+
+  final escapedQuery = _escapeSearchValue(query);
+  return '(name:"$escapedQuery" or artist:"$escapedQuery")';
+}
+
+bool _looksLikeStructuredQuery(String query) {
+  final structuredQueryPattern = RegExp(
+    r'(^|\s)(-?\w+:|\(|\)|\{|\}|\b(or|and|not)\b)',
+    caseSensitive: false,
+  );
+  return structuredQueryPattern.hasMatch(query);
+}
+
+String _escapeSearchValue(String value) => value.replaceAll('"', r'\"');

@@ -7,11 +7,9 @@ import 'package:magicsearch_flutter_app/widgets/oracle_text_widget.dart';
 /// Widget that displays card information including name, mana cost, and type line.
 class CardInfoWidget extends StatelessWidget {
   final MagicCard card;
+  final VoidCallback? onArtistTap;
 
-  const CardInfoWidget({
-    super.key,
-    required this.card,
-  });
+  const CardInfoWidget({super.key, required this.card, this.onArtistTap});
 
   bool get _isDoubleSided =>
       card.cardFaces != null && card.cardFaces!.length >= 2;
@@ -20,7 +18,7 @@ class CardInfoWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final borderColor = theme.colorScheme.outline;
-    
+
     return Container(
       constraints: const BoxConstraints(maxWidth: 320),
       decoration: BoxDecoration(
@@ -35,19 +33,21 @@ class CardInfoWidget extends StatelessWidget {
             ..._buildDoubleSidedContent(theme, borderColor)
           else
             ..._buildSingleSidedContent(theme, borderColor),
-          
+
           // Legalities grid
           Padding(
             padding: const EdgeInsets.all(12),
             child: _buildLegalitiesGrid(theme),
           ),
-          
+
           // Illustrator
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
               color: theme.colorScheme.surfaceContainerHighest,
-              borderRadius: const BorderRadius.vertical(bottom: Radius.circular(10)),
+              borderRadius: const BorderRadius.vertical(
+                bottom: Radius.circular(10),
+              ),
               border: Border(top: BorderSide(color: borderColor)),
             ),
             child: Row(
@@ -58,10 +58,18 @@ class CardInfoWidget extends StatelessWidget {
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
                 const SizedBox(width: 6),
-                Text(
-                  card.artist,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
+                GestureDetector(
+                  onTap: onArtistTap,
+                  child: Text(
+                    card.artist,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: onArtistTap != null
+                          ? theme.colorScheme.primary
+                          : theme.colorScheme.onSurfaceVariant,
+                      decoration: onArtistTap != null
+                          ? TextDecoration.underline
+                          : TextDecoration.none,
+                    ),
                   ),
                 ),
               ],
@@ -74,8 +82,13 @@ class CardInfoWidget extends StatelessWidget {
 
   List<Widget> _buildSingleSidedContent(ThemeData theme, Color borderColor) {
     return [
-      _buildNameHeader(card.name, card.manaCost ?? '', theme, borderColor,
-          isTop: true),
+      _buildNameHeader(
+        card.name,
+        card.manaCost ?? '',
+        theme,
+        borderColor,
+        isTop: true,
+      ),
       _buildTypeLine(card.typeLine, theme, borderColor),
       _buildOracleText(card.oracleText ?? '', theme),
       if (card.flavorText != null && card.flavorText!.isNotEmpty)
@@ -91,14 +104,22 @@ class CardInfoWidget extends StatelessWidget {
     final backFace = faces.elementAtOrNull(1) ?? faces[1];
     return [
       // Front face
-      _buildNameHeader(frontFace.name ?? card.name, frontFace.manaCost ?? '',
-          theme, borderColor,
-          isTop: true),
+      _buildNameHeader(
+        frontFace.name ?? card.name,
+        frontFace.manaCost ?? '',
+        theme,
+        borderColor,
+        isTop: true,
+      ),
       _buildTypeLine(frontFace.typeLine ?? card.typeLine, theme, borderColor),
       _buildOracleText(frontFace.oracleText ?? '', theme),
       if (frontFace.power != null && frontFace.toughness != null)
         _buildPowerToughness(
-            frontFace.power!, frontFace.toughness!, theme, borderColor),
+          frontFace.power!,
+          frontFace.toughness!,
+          theme,
+          borderColor,
+        ),
 
       // Divider between faces
       Container(
@@ -114,8 +135,11 @@ class CardInfoWidget extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.flip, size: 14,
-                  color: theme.colorScheme.onSurfaceVariant),
+              Icon(
+                Icons.flip,
+                size: 14,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
               const SizedBox(width: 6),
               Text(
                 'Back Face',
@@ -130,19 +154,32 @@ class CardInfoWidget extends StatelessWidget {
       ),
 
       // Back face
-      _buildNameHeader(backFace.name ?? '', backFace.manaCost ?? '',
-          theme, borderColor,
-          isTop: false),
+      _buildNameHeader(
+        backFace.name ?? '',
+        backFace.manaCost ?? '',
+        theme,
+        borderColor,
+        isTop: false,
+      ),
       _buildTypeLine(backFace.typeLine ?? '', theme, borderColor),
       _buildOracleText(backFace.oracleText ?? '', theme),
       if (backFace.power != null && backFace.toughness != null)
         _buildPowerToughness(
-            backFace.power!, backFace.toughness!, theme, borderColor),
+          backFace.power!,
+          backFace.toughness!,
+          theme,
+          borderColor,
+        ),
     ];
   }
 
-  Widget _buildNameHeader(String name, String manaCost, ThemeData theme,
-      Color borderColor, {required bool isTop}) {
+  Widget _buildNameHeader(
+    String name,
+    String manaCost,
+    ThemeData theme,
+    Color borderColor, {
+    required bool isTop,
+  }) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
@@ -209,7 +246,11 @@ class CardInfoWidget extends StatelessWidget {
   }
 
   Widget _buildPowerToughness(
-      String power, String toughness, ThemeData theme, Color borderColor) {
+    String power,
+    String toughness,
+    ThemeData theme,
+    Color borderColor,
+  ) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       alignment: Alignment.centerRight,
@@ -238,8 +279,13 @@ class CardInfoWidget extends StatelessWidget {
       'Legacy': card.legalities.legacy,
       'Vintage': card.legalities.vintage,
       'Commander': card.legalities.commander,
-      'Pauper': card.legalities.pauper,
+      'Oathbreaker': card.legalities.oathbreaker,
+      'Alchemy': card.legalities.alchemy,
       'Historic': card.legalities.historic,
+      'Brawl': card.legalities.brawl,
+      'Timeless': card.legalities.timeless,
+      'Pauper': card.legalities.pauper,
+      'Penny': card.legalities.penny,
     };
 
     return Column(
@@ -254,34 +300,40 @@ class CardInfoWidget extends StatelessWidget {
           mainAxisSpacing: 4,
           crossAxisSpacing: 8,
           children: legalities.entries.map((entry) {
-            return _buildLegalityRow(entry.key, entry.value, card.gameChanger, theme);
+            return _buildLegalityRow(
+              entry.key,
+              entry.value,
+              card.gameChanger,
+              theme,
+            );
           }).toList(),
         ),
       ],
     );
   }
 
-  Widget _buildLegalityRow(String format, String status, bool gameChanger, ThemeData theme) {
+  Widget _buildLegalityRow(
+    String format,
+    String status,
+    bool gameChanger,
+    ThemeData theme,
+  ) {
     String statusLabel;
     Color statusColor;
-    
+
     switch (status) {
       case 'legal':
         if (gameChanger && format == 'Commander') {
           statusLabel = 'Legal/GC';
           statusColor = Colors.green.shade500;
         } else {
-        statusLabel = 'Legal';
-        statusColor = Colors.green.shade700;
+          statusLabel = 'Legal';
+          statusColor = Colors.green.shade800;
         }
         break;
       case 'banned':
         statusLabel = 'Banned';
         statusColor = Colors.red.shade700;
-        break;
-      case 'restricted':
-        statusLabel = 'Restricted';
-        statusColor = Colors.orange.shade700;
         break;
       case 'not_legal':
       default:

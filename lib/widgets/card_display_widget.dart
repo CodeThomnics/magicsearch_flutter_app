@@ -18,6 +18,7 @@ class CardDisplayWidget extends HookWidget {
   final bool showImage;
   final bool showInfo;
   final String? heroTag;
+  final VoidCallback? onArtistTap;
 
   const CardDisplayWidget({
     super.key,
@@ -26,6 +27,7 @@ class CardDisplayWidget extends HookWidget {
     this.showImage = true,
     this.showInfo = true,
     this.heroTag,
+    this.onArtistTap,
   });
 
   bool get _isDoubleSided =>
@@ -37,9 +39,11 @@ class CardDisplayWidget extends HookWidget {
     final flipController = useAnimationController(
       duration: const Duration(milliseconds: 400),
     );
-    final flipAnim = useListenable(Tween<double>(begin: 0, end: 1).animate(
-      CurvedAnimation(parent: flipController, curve: Curves.easeInOut),
-    ));
+    final flipAnim = useListenable(
+      Tween<double>(begin: 0, end: 1).animate(
+        CurvedAnimation(parent: flipController, curve: Curves.easeInOut),
+      ),
+    );
 
     final currentImageUrl = useCallback((bool front) {
       if (_isDoubleSided) {
@@ -68,10 +72,7 @@ class CardDisplayWidget extends HookWidget {
           constraints: BoxConstraints(maxWidth: maxImageWidth),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(12),
-            child: CachedImage(
-              url: imageUrl ?? '',
-              fit: BoxFit.contain,
-            ),
+            child: CachedImage(url: imageUrl ?? '', fit: BoxFit.contain),
           ),
         );
         if (heroTag != null && front) {
@@ -93,7 +94,9 @@ class CardDisplayWidget extends HookWidget {
               transform: Matrix4.identity()
                 ..setEntry(3, 2, 0.001)
                 ..rotateY(angle),
-              child: displayFront ? buildCardImage(true) : buildCardImage(false),
+              child: displayFront
+                  ? buildCardImage(true)
+                  : buildCardImage(false),
             );
           },
         );
@@ -121,12 +124,9 @@ class CardDisplayWidget extends HookWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        if (showImage) ...[
-          buildImageSection(),
-          const SizedBox(height: 12),
-        ],
+        if (showImage) ...[buildImageSection(), const SizedBox(height: 12)],
         if (showInfo) ...[
-          CardInfoWidget(card: card),
+          CardInfoWidget(card: card, onArtistTap: onArtistTap),
           const SizedBox(height: 12),
           CardPricesWidget(card: card),
           const SizedBox(height: 12),
