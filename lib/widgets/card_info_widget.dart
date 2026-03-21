@@ -52,25 +52,39 @@ class CardInfoWidget extends StatelessWidget {
             ),
             child: Row(
               children: [
-                Icon(
+                Icon( 
                   Icons.brush,
-                  size: 14,
+                  size: 16,
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
                 const SizedBox(width: 6),
-                GestureDetector(
-                  onTap: onArtistTap,
-                  child: Text(
-                    card.artist,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: onArtistTap != null
-                          ? theme.colorScheme.primary
-                          : theme.colorScheme.onSurfaceVariant,
-                      decoration: onArtistTap != null
-                          ? TextDecoration.underline
-                          : TextDecoration.none,
+                Row(
+                  children: [
+                    Text(
+                      'Illustrated by ',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
                     ),
-                  ),
+                    if (onArtistTap != null)
+                      GestureDetector(
+                        onTap: onArtistTap,
+                        child: Text(
+                          card.artist,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.primary,
+                            decoration: TextDecoration.underline,
+                          ),
+                        ),
+                      )
+                    else
+                      Text(
+                        card.artist,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                  ],
                 ),
               ],
             ),
