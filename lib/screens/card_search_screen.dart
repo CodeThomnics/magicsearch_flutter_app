@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:magicsearch_flutter_app/models/card.dart';
 import 'package:magicsearch_flutter_app/providers/card_search_provider.dart';
 import 'package:magicsearch_flutter_app/widgets/card_display_widget.dart';
@@ -14,6 +15,22 @@ class CardSearchScreen extends HookConsumerWidget {
 
   void _showCardDetail(BuildContext context, MagicCard card) {
     context.push('/card/${card.id}');
+  }
+
+  Future<void> _shareCard(MagicCard card) async {
+    final deepLink = Uri(
+      scheme: 'magicsearch',
+      host: 'card',
+      pathSegments: [card.id],
+    ).toString();
+
+    final shareText = 'Check out ${card.name} on MagicSearch\n$deepLink';
+    await SharePlus.instance.share(
+      ShareParams(
+        text: shareText,
+        subject: card.name,
+      ),
+    );
   }
 
   void _openAdvancedSearch(BuildContext context, WidgetRef ref) {
@@ -154,13 +171,37 @@ class CardSearchScreen extends HookConsumerWidget {
                     data: (result) {
                       if (result == null) return const SizedBox.shrink();
                       if (result.isExact) {
+                        final exactCard = result.exactCard!;
                         return SingleChildScrollView(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 16,
                             vertical: 8,
                           ),
-                          child: Center(
-                            child: CardDisplayWidget(card: result.exactCard!),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Center(
+                                child: CardDisplayWidget(
+                                  card: exactCard,
+                                  showInfo: false,
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              Center(
+                                child: FilledButton.icon(
+                                  onPressed: () => _shareCard(exactCard),
+                                  icon: const Icon(Icons.share),
+                                  label: const Text('Share card'),
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              Center(
+                                child: CardDisplayWidget(
+                                  card: exactCard,
+                                  showImage: false,
+                                ),
+                              ),
+                            ],
                           ),
                         );
                       }

@@ -17,6 +17,26 @@ final _navigatorKey = GlobalKey<NavigatorState>();
 
 final _router = GoRouter(
   navigatorKey: _navigatorKey,
+  redirect: (context, state) {
+    final uri = state.uri;
+
+    // Supports deep links like:
+    // magicsearch://card/<id>
+    // magicsearch:///card/<id>
+    if (uri.scheme == 'magicsearch') {
+      final hostSegments = uri.host.isNotEmpty ? [uri.host] : <String>[];
+      final allSegments = [...hostSegments, ...uri.pathSegments];
+
+      if (allSegments.length >= 2 && allSegments.first == 'card') {
+        final cardId = allSegments[1];
+        if (cardId.isNotEmpty) {
+          return '/card/$cardId';
+        }
+      }
+    }
+
+    return null;
+  },
   routes: [
     GoRoute(path: '/', builder: (context, state) => const HomeScreen()),
     GoRoute(
